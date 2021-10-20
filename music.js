@@ -1,21 +1,15 @@
-class Queue {
+const ytdl = require("ytdl-core");
+
+class MusicPlayer {
   constructor() {
-    this.q = [];
-    this.string = ''
+    this.queue = [];
   }
 
-  add = (item) => {
-    this.q.push(item);
-  }
-
-  print = () => {
-    this.string = '';
-    this.q.forEach(element => {
-      this.string = this.string + ` ${element}`;
-    });
-    return this.string;
+  play = async (link) => {
+    this.queue.push(link);
+    console.log(this.queue);
   }
 }
 
-queue = new Queue();
-exports.q = queue;
+player = new MusicPlayer();
+module.exports = player;

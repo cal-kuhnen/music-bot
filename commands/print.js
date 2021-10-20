@@ -1,4 +1,4 @@
-const list = require('../music.js');
+const player = require('../music.js');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 
 module.exports = {
@@ -6,7 +6,7 @@ module.exports = {
 		.setName('print')
 		.setDescription('prints array contents'),
 	async execute(interaction) {
-    var msg = list.q.print();
+    var msg = player.print();
 		await interaction.reply(msg);
 	},
 };

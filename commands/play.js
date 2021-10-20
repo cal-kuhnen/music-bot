@@ -1,10 +1,23 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
+const player = require('../music.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('play')
-		.setDescription('Plays song'),
+		.setDescription('Plays song')
+		.addStringOption(option =>
+			option.setName('link')
+				.setDescription('Enter a Youtube link to be played.')
+				.setRequired(true)),
 	async execute(interaction) {
-		await interaction.reply('never gonna give you up');
+		const link = interaction.options.getString('link');
+		let user = await interaction.member.fetch();
+    let voiceChannel = await user.voice.channel;
+		if (!voiceChannel) {
+			await interaction.reply('You must be in a voice channel to play audio!');
+		} else {
+			player.play(link);
+			interaction.reply('Playing song');
+		}
 	},
 };
