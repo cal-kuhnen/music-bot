@@ -16,8 +16,8 @@ module.exports = {
 		if (!voiceChannel) {
 			await interaction.reply('You must be in a voice channel to play audio!');
 		} else {
-			player.play(link);
-			interaction.reply('Playing song');
+			player.play(link, voiceChannel);
+			await interaction.reply('Playing song');
 		}
 	},
 };
