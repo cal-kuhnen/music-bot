@@ -18,6 +18,8 @@ class MusicPlayer {
       if (this.queue.length > 1) {
         let nextSong = await this.nextSong();
         this.audio.play(nextSong);
+      } else {
+        this.queue.shift();
       }
     });
 
