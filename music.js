@@ -13,6 +13,7 @@ class MusicPlayer {
     this.queue = [];
     this.audio = createAudioPlayer();
     this.connection = null;
+    this.channel = null;
 
     this.audio.on(AudioPlayerStatus.Idle, async () => {
       if (this.queue.length > 1) {
@@ -49,6 +50,8 @@ class MusicPlayer {
   }
 
   play = async (link, voiceChannel, interaction) => {
+    this.channel = await interaction.client.channels.cache.get(interaction.channelId);
+
     if (!this.connection) {
       this.connection = await this.connectToChannel(voiceChannel);
       const subscription = this.connection.subscribe(this.audio);
@@ -74,10 +77,11 @@ class MusicPlayer {
     if (this.queue.length === 1) {
       const stream = ytdl(this.queue[0].url, { filter: 'audioonly' });
       const resource = createAudioResource(stream, {seek: 0, volume: 1});
+      this.channel.send(`Now playing: ${this.queue[0].title}`);
       this.audio.play(resource);
     }
 
-    console.log(this.queue);
+    //console.log(this.queue);
   }
 
   nextSong = async () => {
@@ -86,6 +90,7 @@ class MusicPlayer {
     try {
       const stream = await ytdl(this.queue[0].url, { filter: 'audioonly' });
       const resource = await createAudioResource(stream, {seek: 0, volume: 1});
+      this.channel.send(`Now playing: ${this.queue[0].title}`);
       return resource;
     } catch (error) {
       console.error(error);
