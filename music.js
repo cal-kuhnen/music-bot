@@ -119,6 +119,11 @@ class MusicPlayer {
     }
   }
 
+  skip = async (interaction) => {
+    await interaction.reply('Skipping...');
+    this.audio.stop();
+  }
+
 }
 
 player = new MusicPlayer();
