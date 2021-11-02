@@ -14,6 +14,7 @@ class MusicPlayer {
     this.audio = createAudioPlayer();
     this.connection = null;
     this.channel = null;
+    this.playingMsg;
 
     this.audio.on(AudioPlayerStatus.Idle, async () => {
       if (this.queue.length > 1) {
@@ -21,6 +22,7 @@ class MusicPlayer {
         this.audio.play(nextSong);
       } else {
         this.queue.shift();
+        this.playingMsg.delete();
       }
     });
 
@@ -72,12 +74,14 @@ class MusicPlayer {
       url: songInfo.videoDetails.video_url,
     }
     this.queue.push(song);
-    await interaction.reply(`Queued: ${song.title}`);
+    await interaction.reply(`Queued ${song.title}`);
 
     if (this.queue.length === 1) {
       const stream = ytdl(this.queue[0].url, { filter: 'audioonly' });
       const resource = createAudioResource(stream, {seek: 0, volume: 1});
-      this.channel.send(`Now playing: ${this.queue[0].title}`);
+      this.channel.send(`Now playing: ${this.queue[0].title}`)
+        .then(message => this.playingMsg = message)
+        .catch(console.error);
       this.audio.play(resource);
     }
 
@@ -86,16 +90,29 @@ class MusicPlayer {
 
   nextSong = async () => {
     this.queue.shift();
+    this.playingMsg.delete();
     console.log(this.queue);
     try {
       const stream = await ytdl(this.queue[0].url, { filter: 'audioonly' });
       const resource = await createAudioResource(stream, {seek: 0, volume: 1});
-      this.channel.send(`Now playing: ${this.queue[0].title}`);
+      this.channel.send(`Now playing: ${this.queue[0].title}`)
+        .then(message => this.playingMsg = message)
+        .catch(console.error);
       return resource;
     } catch (error) {
       console.error(error);
     }
   }
+
+  pause = async (interaction) => {
+    if (AudioPlayerStatus.Playing) {
+      this.audio.pause();
+      await interaction.reply('Paused!');
+    } else {
+      await interaction.reply('No audio to pause.');
+    }
+  }
+
 }
 
 player = new MusicPlayer();
