@@ -124,6 +124,12 @@ class MusicPlayer {
     this.audio.stop();
   }
 
+  stop = async (interaction) => {
+    await interaction.reply('Player stopped.');
+    this.queue = [];
+    this.audio.stop();
+  }
+
 }
 
 player = new MusicPlayer();
