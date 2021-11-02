@@ -54,6 +54,11 @@ class MusicPlayer {
   play = async (link, voiceChannel, interaction) => {
     this.channel = await interaction.client.channels.cache.get(interaction.channelId);
 
+    if(!link && this.audio.status === AudioPlayerStatus.Paused) {
+      this.audio.unpause();
+      return;
+    }
+
     if (!this.connection) {
       this.connection = await this.connectToChannel(voiceChannel);
       const subscription = this.connection.subscribe(this.audio);
@@ -105,7 +110,7 @@ class MusicPlayer {
   }
 
   pause = async (interaction) => {
-    if (AudioPlayerStatus.Playing) {
+    if (this.audio.status === AudioPlayerStatus.Playing) {
       this.audio.pause();
       await interaction.reply('Paused!');
     } else {

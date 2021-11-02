@@ -8,7 +8,7 @@ module.exports = {
 		.addStringOption(option =>
 			option.setName('link')
 				.setDescription('Enter a Youtube link to be played.')
-				.setRequired(true)),
+				.setRequired(false)),
 	async execute(interaction) {
 		const link = interaction.options.getString('link');
 		let user = await interaction.member.fetch();
