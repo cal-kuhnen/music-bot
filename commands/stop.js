@@ -6,6 +6,7 @@ module.exports = {
 		.setName('stop')
 		.setDescription('Stops any audio and clears the queue.'),
 	async execute(interaction) {
-    player.stop(interaction);
+    await interaction.reply('Player stopped.');
+    player.stop();
 	},
 };

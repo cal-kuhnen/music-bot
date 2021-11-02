@@ -6,6 +6,7 @@ module.exports = {
 		.setName('skip')
 		.setDescription('Skips to the next song in the queue.'),
 	async execute(interaction) {
-    player.skip(interaction);
+    await interaction.reply('Skipping...');
+    player.skip();
 	},
 };

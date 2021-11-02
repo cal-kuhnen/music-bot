@@ -7,6 +7,7 @@ const {
   entersState,
   AudioPlayerStatus
 } = require('@discordjs/voice');
+const { MessageEmbed } = require('discord.js');
 
 class MusicPlayer {
   constructor() {
@@ -80,14 +81,22 @@ class MusicPlayer {
       url: songInfo.videoDetails.video_url,
     }
     this.queue.push(song);
-    await interaction.reply(`Queued ${song.title}`);
+    const queuedEmbed = new MessageEmbed()
+      .setColor('#3399ff')
+      .setDescription(`Queued [${this.queue[0].title}](${this.queue[0].url})`);
+    await interaction.reply({embeds: [queuedEmbed]});
 
     if (this.queue.length === 1) {
       const stream = ytdl(this.queue[0].url, { filter: 'audioonly' });
       const resource = createAudioResource(stream, {seek: 0, volume: 1});
-      this.channel.send(`Now playing: ${this.queue[0].title}`)
+      const nowPlayingEmbed = new MessageEmbed()
+        .setColor('#3399ff')
+        .addField('Now playing', `[${this.queue[0].title}](${this.queue[0].url})`);
+
+      this.channel.send({embeds: [nowPlayingEmbed]})
         .then(message => this.playingMsg = message)
         .catch(console.error);
+
       this.audio.play(resource);
     }
 
@@ -101,9 +110,14 @@ class MusicPlayer {
     try {
       const stream = await ytdl(this.queue[0].url, { filter: 'audioonly' });
       const resource = await createAudioResource(stream, {seek: 0, volume: 1});
-      this.channel.send(`Now playing: ${this.queue[0].title}`)
+      const nowPlayingEmbed = new MessageEmbed()
+        .setColor('#3399ff')
+        .addField('Now playing', `[${this.queue[0].title}](${this.queue[0].url})`);
+
+      this.channel.send({embeds: [nowPlayingEmbed]})
         .then(message => this.playingMsg = message)
         .catch(console.error);
+
       return resource;
     } catch (error) {
       console.error(error);
@@ -119,13 +133,11 @@ class MusicPlayer {
     }
   }
 
-  skip = async (interaction) => {
-    await interaction.reply('Skipping...');
+  skip = async () => {
     this.audio.stop();
   }
 
-  stop = async (interaction) => {
-    await interaction.reply('Player stopped.');
+  stop = async () => {
     this.queue = [];
     this.audio.stop();
   }
