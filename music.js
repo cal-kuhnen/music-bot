@@ -12,6 +12,7 @@ const { MessageEmbed } = require('discord.js');
 class MusicPlayer {
   constructor() {
     this.queue = [];
+    this.played = [];
     this.audio = createAudioPlayer();
     this.connection = null;
     this.channel = null;
@@ -73,7 +74,7 @@ class MusicPlayer {
       const subscription = this.connection.subscribe(this.audio);
 
       if (!subscription) {
-        subscription.unsubscribe();
+        setTimeout(() => subscription.unsubscribe(), 5000);
       }
     }
 
@@ -107,7 +108,7 @@ class MusicPlayer {
   }
 
   nextSong = async () => {
-    this.queue.shift();
+    this.played.push(this.queue.shift());
     this.playingMsg.delete();
     //console.log(this.queue);
     try {
@@ -142,13 +143,19 @@ class MusicPlayer {
 
   stop = async () => {
     this.queue = [];
+    this.played = [];
     this.audio.stop();
   }
 
   printQueue = (interaction) => {
+    const fullQueue = this.played.concat(this.queue);
     let songList = '```';
-    for (let i = 0; i < this.queue.length; i++) {
-      songList += `[${i + 1}] ` + this.queue[i].title + `\n`;
+    for (let i = 0; i < fullQueue.length; i++) {
+      if (fullQueue[i] === this.queue[0]) {
+        songList += `Currently playing:\n${i + 1}) ${fullQueue[i].title} \n-- Up next --\n`;
+      } else {
+        songList += `${i + 1}) ` + fullQueue[i].title + `\n`;
+      }
     }
     songList += '```';
     const upNextEmbed = new MessageEmbed()
