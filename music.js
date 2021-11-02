@@ -19,19 +19,21 @@ class MusicPlayer {
 
     this.audio.on(AudioPlayerStatus.Idle, async () => {
       if (this.queue.length > 1) {
-        let nextSong = await this.nextSong();
-        this.audio.play(nextSong);
+        this.audio.play(await this.nextSong());
       } else {
         this.queue.shift();
-        this.playingMsg.delete();
+        if (this.playingMsg) {
+          this.playingMsg.delete();
+        }
       }
     });
 
     this.audio.on('error', async (error) => {
       console.error(error);
+      this.audio.stop();
+      this.channel.send('GOD DAMNIT');
       if (this.queue.length > 1) {
-        let nextSong = await this.nextSong();
-        this.audio.play(nextSong);
+        this.audio.play(await this.nextSong());
       }
     });
   }
@@ -71,7 +73,7 @@ class MusicPlayer {
       const subscription = this.connection.subscribe(this.audio);
 
       if (!subscription) {
-        setTimeout(() => subscription.unsubscribe(), 5000);
+        subscription.unsubscribe();
       }
     }
 
@@ -79,11 +81,12 @@ class MusicPlayer {
     const song = {
       title: songInfo.videoDetails.title,
       url: songInfo.videoDetails.video_url,
-    }
+    };
     this.queue.push(song);
     const queuedEmbed = new MessageEmbed()
       .setColor('#3399ff')
-      .setDescription(`Queued [${this.queue[0].title}](${this.queue[0].url})`);
+      .setDescription(`Queued [${song.title}](${song.url})`);
+
     await interaction.reply({embeds: [queuedEmbed]});
 
     if (this.queue.length === 1) {
@@ -140,6 +143,19 @@ class MusicPlayer {
   stop = async () => {
     this.queue = [];
     this.audio.stop();
+  }
+
+  printQueue = (interaction) => {
+    let songList = '```';
+    for (let i = 0; i < this.queue.length; i++) {
+      songList += `[${i + 1}] ` + this.queue[i].title + `\n`;
+    }
+    songList += '```';
+    const upNextEmbed = new MessageEmbed()
+      .setColor('#eedd00')
+      .setDescription(songList);
+
+    interaction.reply({embeds: [upNextEmbed]});
   }
 
 }
