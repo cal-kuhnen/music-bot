@@ -54,8 +54,14 @@ class MusicPlayer {
   play = async (link, voiceChannel, interaction) => {
     this.channel = await interaction.client.channels.cache.get(interaction.channelId);
 
-    if(!link && this.audio.status === AudioPlayerStatus.Paused) {
+    if(!link && this.audio.state.status === AudioPlayerStatus.Paused) {
       this.audio.unpause();
+      await interaction.reply('Resuming...');
+      return;
+    }
+
+    if (!ytdl.validateURL(link)) {
+      await interaction.reply('Please use a YouTube link!');
       return;
     }
 
@@ -66,11 +72,6 @@ class MusicPlayer {
       if (!subscription) {
         setTimeout(() => subscription.unsubscribe(), 5000);
       }
-    }
-
-    if (!ytdl.validateURL(link)) {
-      await interaction.reply('Please use a YouTube link!');
-      return;
     }
 
     const songInfo = await ytdl.getInfo(link);
@@ -96,7 +97,7 @@ class MusicPlayer {
   nextSong = async () => {
     this.queue.shift();
     this.playingMsg.delete();
-    console.log(this.queue);
+    //console.log(this.queue);
     try {
       const stream = await ytdl(this.queue[0].url, { filter: 'audioonly' });
       const resource = await createAudioResource(stream, {seek: 0, volume: 1});
@@ -110,7 +111,7 @@ class MusicPlayer {
   }
 
   pause = async (interaction) => {
-    if (this.audio.status === AudioPlayerStatus.Playing) {
+    if (this.audio.state.status === AudioPlayerStatus.Playing) {
       this.audio.pause();
       await interaction.reply('Paused!');
     } else {
