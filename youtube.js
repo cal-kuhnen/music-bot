@@ -9,6 +9,7 @@ const SCOPES = ['https://www.googleapis.com/auth/youtube.readonly'];
 const TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH ||
     process.env.USERPROFILE) + '/.credentials/';
 const TOKEN_PATH = TOKEN_DIR + 'chuner-youtube.json';
+const YOUTUBE = 'https://www.youtube.com/watch?v=';
 
 // Load client secrets from a local file.
 fs.readFile('client_secret.json', function processClientSecrets(err, content) {
@@ -17,7 +18,7 @@ fs.readFile('client_secret.json', function processClientSecrets(err, content) {
     return;
   }
   // Authorize a client with the loaded credentials, then call the YouTube API.
-  authorize(JSON.parse(content), getChannel);
+  authorize(JSON.parse(content), getVideo);
 });
 
 /**
@@ -100,26 +101,33 @@ function storeToken(token) {
  *
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
-function getChannel(auth) {
+function getVideo(auth, query) {
   const service = google.youtube('v3');
-  service.channels.list({
+  const song = {
+    title: '',
+    url:
+  }
+  service.search.list({
     auth: auth,
-    part: 'snippet,contentDetails,statistics',
-    forUsername: 'GoogleDevelopers'
+    part: 'snippet',
+    maxResults: 1,
+    type: 'video',
+    q: query
   }, function(err, response) {
     if (err) {
       console.log('The API returned an error: ' + err);
       return;
     }
-    const channels = response.data.items;
-    if (channels.length == 0) {
-      console.log('No channel found.');
+    const video = response.data.items;
+    if (video.length == 0) {
+      console.log('No videos found.');
     } else {
-      console.log('This channel\'s ID is %s. Its title is \'%s\', and ' +
-                  'it has %s views.',
-                  channels[0].id,
-                  channels[0].snippet.title,
-                  channels[0].statistics.viewCount);
+      console.log(`Top result: ${video[0].snippet.title}`);
+      song.title = video[0].snippet.title;
+      song.url = YOUTUBE + video[0].id.videoId;
+      return song;
     }
   });
 }
+
+export getVideo;
