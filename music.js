@@ -8,6 +8,7 @@ const {
   AudioPlayerStatus
 } = require('@discordjs/voice');
 const { MessageEmbed } = require('discord.js');
+const youtube = require('./youtube.js');
 
 class MusicPlayer {
   constructor() {
@@ -64,8 +65,14 @@ class MusicPlayer {
       return;
     }
 
-    if (!ytdl.validateURL(link)) {
-      await interaction.reply('Please use a YouTube link!');
+    if (ytdl.validateURL(link)) {
+      const songInfo = await ytdl.getInfo(link);
+      const song = {
+        title: songInfo.videoDetails.title,
+        url: songInfo.videoDetails.video_url,
+      };
+    } else {
+      interaction.reply('Please use a Youtube link!');
       return;
     }
 
@@ -78,11 +85,6 @@ class MusicPlayer {
       }
     }
 
-    const songInfo = await ytdl.getInfo(link);
-    const song = {
-      title: songInfo.videoDetails.title,
-      url: songInfo.videoDetails.video_url,
-    };
     this.queue.push(song);
     const queuedEmbed = new MessageEmbed()
       .setColor('#3399ff')
