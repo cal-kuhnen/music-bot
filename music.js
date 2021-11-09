@@ -56,24 +56,26 @@ class MusicPlayer {
     }
   }
 
-  play = async (link, voiceChannel, interaction) => {
+  play = async (input, voiceChannel, interaction) => {
     this.channel = await interaction.client.channels.cache.get(interaction.channelId);
 
-    if(!link && this.audio.state.status === AudioPlayerStatus.Paused) {
+    if(!input && this.audio.state.status === AudioPlayerStatus.Paused) {
       this.audio.unpause();
       await interaction.reply('Resuming...');
       return;
     }
 
-    if (ytdl.validateURL(link)) {
-      const songInfo = await ytdl.getInfo(link);
-      const song = {
+    let song;
+
+    if (ytdl.validateURL(input)) {
+      const songInfo = await ytdl.getInfo(input);
+      song = {
         title: songInfo.videoDetails.title,
         url: songInfo.videoDetails.video_url,
       };
     } else {
-      interaction.reply('Please use a Youtube link!');
-      return;
+      song = await youtube.search(input);
+      console.log(`In player: title is ${song.title}`);
     }
 
     if (!this.connection) {
