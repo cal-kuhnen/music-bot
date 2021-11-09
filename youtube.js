@@ -9,10 +9,9 @@ const youtubeSearch = async (query) => {
       title: results.items[0].title,
       url: results.items[0].url
     };
-    console.log(`YtSearch: title is ${song.title}`);
     return song;
   } catch (error) {
-    console.error(error);
+    console.log(`ytsr: ${error}`);
   }
 }
 

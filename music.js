@@ -33,7 +33,11 @@ class MusicPlayer {
     this.audio.on('error', async (error) => {
       console.error(error);
       this.audio.stop();
-      this.channel.send('GOD DAMNIT');
+      const errorEmbed = new MessageEmbed()
+        .setColor('#ff2222')
+        .setDescription('Audio player failure, RIP.');
+
+      this.channel.send({embeds: [errorEmbed]});
       if (this.queue.length > 1) {
         this.audio.play(await this.nextSong());
       }
@@ -63,6 +67,13 @@ class MusicPlayer {
       this.audio.unpause();
       await interaction.reply('Resuming...');
       return;
+    } else if (!input) {
+      const noInputEmbed = new MessageEmbed()
+        .setColor('#ff2222')
+        .setDescription('Nothing to unpause, add a Youtube link or search query to queue audio');
+
+      interaction.reply({embeds: [noInputEmbed]});
+      return;
     }
 
     let song;
@@ -75,7 +86,15 @@ class MusicPlayer {
       };
     } else {
       song = await youtube.search(input);
-      console.log(`In player: title is ${song.title}`);
+    }
+
+    if (!song) {
+      const errorEmbed = new MessageEmbed()
+        .setColor('#ff2222')
+        .setDescription('An error occurred during this request. Tell Calvin something is fucked');
+
+      interaction.reply({embeds: [errorEmbed]});
+      return;
     }
 
     if (!this.connection) {
@@ -107,8 +126,6 @@ class MusicPlayer {
 
       this.audio.play(resource);
     }
-
-    //console.log(this.queue);
   }
 
   nextSong = async () => {
