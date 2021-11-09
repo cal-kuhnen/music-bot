@@ -32,15 +32,12 @@ class MusicPlayer {
 
     this.audio.on('error', async (error) => {
       console.error(error);
-      this.audio.stop();
       const errorEmbed = new MessageEmbed()
         .setColor('#ff2222')
         .setDescription('Audio player failure, RIP.');
 
       this.channel.send({embeds: [errorEmbed]});
-      if (this.queue.length > 1) {
-        this.audio.play(await this.nextSong());
-      }
+      this.audio.stop();
     });
   }
 
@@ -170,10 +167,10 @@ class MusicPlayer {
 
   printQueue = (interaction) => {
     const fullQueue = this.played.concat(this.queue);
-    let songList = '```';
+    let songList = '```ml\n';
     for (let i = 0; i < fullQueue.length; i++) {
       if (fullQueue[i] === this.queue[0]) {
-        songList += `Currently playing:\n${i + 1}) ${fullQueue[i].title} \n-- Up next --\n`;
+        songList += `-- Currently Playing --\n${i + 1}) '${fullQueue[i].title}' \n-- Up Next --\n`;
       } else {
         songList += `${i + 1}) ` + fullQueue[i].title + `\n`;
       }
