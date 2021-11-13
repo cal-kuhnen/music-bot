@@ -21,11 +21,13 @@ class MusicPlayer {
 
     this.audio.on(AudioPlayerStatus.Idle, async () => {
       if (this.queue.length > 1) {
-        this.audio.play(await this.nextSong());
+        this.played.push(this.queue.shift());
+        this.audio.play(await this.resourceBuilder());
       } else {
-        this.queue.shift();
+        this.played.push(this.queue.shift());
         if (this.playingMsg) {
           this.playingMsg.delete();
+          this.playingMsg = null;
         }
       }
     });
@@ -111,23 +113,14 @@ class MusicPlayer {
     await interaction.reply({embeds: [queuedEmbed]});
 
     if (this.queue.length === 1) {
-      const stream = ytdl(this.queue[0].url, { filter: 'audioonly' });
-      const resource = createAudioResource(stream, {seek: 0, volume: 1});
-      const nowPlayingEmbed = new MessageEmbed()
-        .setColor('#3399ff')
-        .addField('Now playing', `[${this.queue[0].title}](${this.queue[0].url})`);
-
-      this.channel.send({embeds: [nowPlayingEmbed]})
-        .then(message => this.playingMsg = message)
-        .catch(console.error);
-
-      this.audio.play(resource);
+      this.audio.play(await this.resourceBuilder());
     }
   }
 
-  nextSong = async () => {
-    this.played.push(this.queue.shift());
-    this.playingMsg.delete();
+  resourceBuilder = async () => {
+    if (this.playingMsg) {
+      this.playingMsg.delete();
+    }
     //console.log(this.queue);
     try {
       const stream = await ytdl(this.queue[0].url, { filter: 'audioonly' });
@@ -167,10 +160,20 @@ class MusicPlayer {
 
   printQueue = (interaction) => {
     const fullQueue = this.played.concat(this.queue);
+
+    if (fullQueue.length === 0) {
+      const upNextEmbed = new MessageEmbed()
+        .setColor('#eedd00')
+        .setDescription('Queue is empty!');
+
+      interaction.reply({embeds: [upNextEmbed]});
+      return;
+    }
+
     let songList = '```ml\n';
     for (let i = 0; i < fullQueue.length; i++) {
       if (fullQueue[i] === this.queue[0]) {
-        songList += `-- Currently Playing --\n${i + 1}) '${fullQueue[i].title}' \n-- Up Next --\n`;
+        songList += `-- Currently Playing --\n${i + 1}) ${fullQueue[i].title} "\n-- Up Next --\n`;
       } else {
         songList += `${i + 1}) ` + fullQueue[i].title + `\n`;
       }
@@ -182,6 +185,19 @@ class MusicPlayer {
 
     interaction.reply({embeds: [upNextEmbed]});
   }
+
+  exit = () => {
+    if (this.connection) {
+      this.audio.stop();
+      this.connection.destroy();
+    }
+  }
+
+  // TODO
+  // 1. Add remove command
+  // 2. In case of audio player error, attempt to restart the resource at the
+  // time it failed for minimal disturbance
+  // 3. Have bot disconnect when there are no other users in the voice channel
 
 }
 
