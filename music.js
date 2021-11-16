@@ -19,12 +19,15 @@ class MusicPlayer {
     this.channel = null;
     this.playingMsg;
 
+    // On idle, play next song if it exists otherwise chill
     this.audio.on(AudioPlayerStatus.Idle, async () => {
       if (this.queue.length > 1) {
         this.played.push(this.queue.shift());
         this.audio.play(await this.resourceBuilder());
       } else {
-        this.played.push(this.queue.shift());
+        if (this.queue.length > 0) {
+          this.played.push(this.queue.shift());
+        }
         if (this.playingMsg) {
           this.playingMsg.delete();
           this.playingMsg = null;
@@ -32,6 +35,7 @@ class MusicPlayer {
       }
     });
 
+    // On error, try to play next song - mainly for the Node.js v16 issue
     this.audio.on('error', async (error) => {
       console.error(error);
       const errorEmbed = new MessageEmbed()
@@ -118,8 +122,10 @@ class MusicPlayer {
   }
 
   resourceBuilder = async () => {
+
     if (this.playingMsg) {
       this.playingMsg.delete();
+      this.playingMsg = null;
     }
     //console.log(this.queue);
     try {
@@ -140,6 +146,7 @@ class MusicPlayer {
   }
 
   pause = async (interaction) => {
+
     if (this.audio.state.status === AudioPlayerStatus.Playing) {
       this.audio.pause();
       await interaction.reply('Paused!');
@@ -153,12 +160,13 @@ class MusicPlayer {
   }
 
   stop = async () => {
+    this.played.push(this.queue.shift());
     this.queue = [];
-    this.played = [];
     this.audio.stop();
   }
 
   printQueue = (interaction) => {
+
     const fullQueue = this.played.concat(this.queue);
 
     if (fullQueue.length === 0) {
@@ -172,12 +180,14 @@ class MusicPlayer {
 
     let songList = '```ml\n';
     for (let i = 0; i < fullQueue.length; i++) {
+
       if (fullQueue[i] === this.queue[0]) {
         songList += `-- Currently Playing --\n${i + 1}) ${fullQueue[i].title} "\n-- Up Next --\n`;
       } else {
         songList += `${i + 1}) ` + fullQueue[i].title + `\n`;
       }
     }
+
     songList += '```';
     const upNextEmbed = new MessageEmbed()
       .setColor('#eedd00')
@@ -196,8 +206,9 @@ class MusicPlayer {
   // TODO
   // 1. Add remove command
   // 2. In case of audio player error, attempt to restart the resource at the
-  // time it failed for minimal disturbance
+  //    time it failed for minimal disturbance
   // 3. Have bot disconnect when there are no other users in the voice channel
+  // 4. Add messager functions elsewhere to clean up this code
 
 }
 
