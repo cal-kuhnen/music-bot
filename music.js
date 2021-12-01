@@ -1,12 +1,14 @@
-const ytdl = require("ytdl-core");
+const ytcore = require('ytdl-core');
 const {
   joinVoiceChannel,
   createAudioPlayer,
   createAudioResource,
   VoiceConnectionStatus,
   entersState,
-  AudioPlayerStatus
+  AudioPlayerStatus,
+  demuxProbe
 } = require('@discordjs/voice');
+const ytdl = require('youtube-dl-exec');
 const { MessageEmbed } = require('discord.js');
 const youtube = require('./youtube.js');
 
@@ -35,7 +37,7 @@ class MusicPlayer {
       }
     });
 
-    // On error, try to play next song - mainly for the Node.js v16 issue
+    // On error, try to play next song
     this.audio.on('error', async (error) => {
       console.error(error);
       const errorEmbed = new MessageEmbed()
@@ -81,8 +83,8 @@ class MusicPlayer {
 
     let song;
 
-    if (ytdl.validateURL(input)) {
-      const songInfo = await ytdl.getInfo(input);
+    if (ytcore.validateURL(input)) {
+      const songInfo = await ytcore.getInfo(input);
       song = {
         title: songInfo.videoDetails.title,
         url: songInfo.videoDetails.video_url,
@@ -94,7 +96,7 @@ class MusicPlayer {
     if (!song) {
       const errorEmbed = new MessageEmbed()
         .setColor('#ff2222')
-        .setDescription('An error occurred during this request. Tell Calvin something is fucked');
+        .setDescription('An error occurred during this request. Tell Calvin something is broken');
 
       interaction.reply({embeds: [errorEmbed]});
       return;
@@ -122,27 +124,44 @@ class MusicPlayer {
   }
 
   resourceBuilder = async () => {
-
     if (this.playingMsg) {
       this.playingMsg.delete();
       this.playingMsg = null;
     }
-    //console.log(this.queue);
-    try {
-      const stream = await ytdl(this.queue[0].url, { filter: 'audioonly' });
-      const resource = await createAudioResource(stream, {seek: 0, volume: 1});
-      const nowPlayingEmbed = new MessageEmbed()
-        .setColor('#3399ff')
-        .addField('Now playing', `[${this.queue[0].title}](${this.queue[0].url})`);
 
-      this.channel.send({embeds: [nowPlayingEmbed]})
-        .then(message => this.playingMsg = message)
-        .catch(console.error);
-
-      return resource;
-    } catch (error) {
-      console.error(error);
-    }
+    /*
+     * Following code block from the Discord Voice example player; the switch to
+     * youtube-dl-exec solves issue with ytdl-core throwing errors in Nodejs v16
+     */
+    return new Promise((resolve, reject) => {
+			const process = ytdl.exec(
+				this.queue[0].url,
+				{
+					o: '-',
+					q: '',
+					f: 'bestaudio[ext=webm+acodec=opus+asr=48000]/bestaudio',
+					r: '100K',
+				},
+				{ stdio: ['ignore', 'pipe', 'ignore'] },
+			);
+			if (!process.stdout) {
+				reject(new Error('No stdout'));
+				return;
+			}
+			const stream = process.stdout;
+			const onError = (error) => {
+				if (!process.killed) process.kill();
+				stream.resume();
+				reject(error);
+			};
+			process
+				.once('spawn', () => {
+					demuxProbe(stream)
+						.then((probe) => resolve(createAudioResource(probe.stream, { metadata: this, inputType: probe.type })))
+						.catch(onError);
+				})
+				.catch(onError);
+		});
   }
 
   pause = async (interaction) => {
