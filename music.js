@@ -144,18 +144,27 @@ class MusicPlayer {
 				},
 				{ stdio: ['ignore', 'pipe', 'ignore'] },
 			);
+
 			if (!process.stdout) {
 				reject(new Error('No stdout'));
 				return;
 			}
+      
 			const stream = process.stdout;
 			const onError = (error) => {
 				if (!process.killed) process.kill();
 				stream.resume();
 				reject(error);
 			};
-			process
-				.once('spawn', () => {
+
+      const nowPlayingEmbed = new MessageEmbed()
+        .setColor('#3399ff')
+        .addField('Now playing', `[${this.queue[0].title}](${this.queue[0].url})`);
+      this.channel.send({embeds: [nowPlayingEmbed]})
+        .then(message => this.playingMsg = message)
+        .catch(console.error);
+
+			process.once('spawn', () => {
 					demuxProbe(stream)
 						.then((probe) => resolve(createAudioResource(probe.stream, { metadata: this, inputType: probe.type })))
 						.catch(onError);
