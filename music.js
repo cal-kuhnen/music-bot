@@ -77,7 +77,7 @@ class MusicPlayer {
         .setColor('#ff2222')
         .setDescription('Nothing to unpause, add a Youtube link or search query to queue audio');
 
-      interaction.reply({embeds: [noInputEmbed]});
+      await interaction.reply({embeds: [noInputEmbed]});
       return;
     }
 
@@ -98,7 +98,7 @@ class MusicPlayer {
         .setColor('#ff2222')
         .setDescription('An error occurred during this request. Tell Calvin something is broken');
 
-      interaction.reply({embeds: [errorEmbed]});
+      await interaction.reply({embeds: [errorEmbed]});
       return;
     }
 
@@ -140,7 +140,7 @@ class MusicPlayer {
 					o: '-',
 					q: '',
 					f: 'bestaudio[ext=webm+acodec=opus+asr=48000]/bestaudio',
-					r: '100K',
+					r: '200K',
 				},
 				{ stdio: ['ignore', 'pipe', 'ignore'] },
 			);
@@ -149,7 +149,7 @@ class MusicPlayer {
 				reject(new Error('No stdout'));
 				return;
 			}
-      
+
 			const stream = process.stdout;
 			const onError = (error) => {
 				if (!process.killed) process.kill();
@@ -193,7 +193,28 @@ class MusicPlayer {
     this.audio.stop();
   }
 
-  printQueue = (interaction) => {
+  remove = async (trackID, interaction) => {
+
+    if (trackID - this.played.length - 1 === 0) {
+      await interaction.reply('Cannot remove currently playing song');
+      return;
+    }
+
+    if (trackID < 1 || trackID > (this.played.length + this.queue.length)) {
+      await interaction.reply('That index is out of range; try the queue command to see which indices are in use');
+    } else if (trackID <= this.played.length) {
+      const removedName = this.played[trackID - 1].title;
+      this.played.splice(trackID - 1, 1);
+      await interaction.reply(`Removed ${removedName} from the queue`);
+    } else {
+      const removedName = this.queue[(trackID - this.played.length - 1)].title;
+      this.queue.splice((trackID - this.played.length - 1), 1);
+      await interaction.reply(`Removed ${removedName} from the queue`);
+    }
+
+  }
+
+  printQueue = async (interaction) => {
 
     const fullQueue = this.played.concat(this.queue);
 
@@ -202,7 +223,7 @@ class MusicPlayer {
         .setColor('#eedd00')
         .setDescription('Queue is empty!');
 
-      interaction.reply({embeds: [upNextEmbed]});
+      await interaction.reply({embeds: [upNextEmbed]});
       return;
     }
 
@@ -221,13 +242,14 @@ class MusicPlayer {
       .setColor('#eedd00')
       .setDescription(songList);
 
-    interaction.reply({embeds: [upNextEmbed]});
+    await interaction.reply({embeds: [upNextEmbed]});
   }
 
   exit = () => {
     if (this.connection) {
       this.audio.stop();
       this.connection.destroy();
+      this.connection = null;
     }
   }
 
@@ -237,6 +259,7 @@ class MusicPlayer {
   //    time it failed for minimal disturbance
   // 3. Have bot disconnect when there are no other users in the voice channel
   // 4. Add messager functions elsewhere to clean up this code
+  // 5.
 
 }
 
