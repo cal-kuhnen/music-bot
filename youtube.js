@@ -11,7 +11,7 @@ const youtubeSearch = async (query) => {
     };
     return song;
   } catch (error) {
-    console.log(`ytsr: ${error}`);
+    console.log(error);
   }
 }
 

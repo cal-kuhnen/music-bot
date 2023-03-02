@@ -4,3 +4,4 @@ node_modules
 *.txt
 
 client_secret.json
+.webm

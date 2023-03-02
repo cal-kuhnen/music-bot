@@ -6,11 +6,10 @@ const {
   VoiceConnectionStatus,
   entersState,
   AudioPlayerStatus,
-  demuxProbe
 } = require('@discordjs/voice');
-const ytdl = require('youtube-dl-exec');
 const { MessageEmbed } = require('discord.js');
 const youtube = require('./youtube.js');
+const play = require('play-dl');
 
 class MusicPlayer {
   constructor() {
@@ -25,7 +24,10 @@ class MusicPlayer {
     this.audio.on(AudioPlayerStatus.Idle, async () => {
       if (this.queue.length > 1) {
         this.played.push(this.queue.shift());
-        this.audio.play(await this.resourceBuilder());
+        const source = await play.stream(this.queue[0].url, { quality: 2 });
+        this.audio.play(createAudioResource(source.stream, {
+          inputType: source.type
+        }));
       } else {
         if (this.queue.length > 0) {
           this.played.push(this.queue.shift());
@@ -104,6 +106,13 @@ class MusicPlayer {
 
     if (!this.connection) {
       this.connection = await this.connectToChannel(voiceChannel);
+
+      // Temporary fix for pause that happens after ~55 seconds
+      this.connection.on('stateChange', (old_state, new_state) => {
+        if (old_state.status === VoiceConnectionStatus.Ready && new_state.status === VoiceConnectionStatus.Connecting) {
+            this.connection.configureNetworking();
+        }
+      });
       const subscription = this.connection.subscribe(this.audio);
 
       if (!subscription) {
@@ -119,7 +128,14 @@ class MusicPlayer {
     await interaction.reply({embeds: [queuedEmbed]});
 
     if (this.queue.length === 1) {
-      this.audio.play(await this.resourceBuilder());
+      try {
+        const source = await play.stream(song.url, { quality: 2 });
+        this.audio.play(createAudioResource(source.stream, {
+          inputType: source.type
+        }));
+      } catch(e) {
+        console.log(e);
+      }
     }
   }
 
@@ -129,48 +145,12 @@ class MusicPlayer {
       this.playingMsg = null;
     }
 
-    /*
-     * Following code block from the Discord Voice example player; the switch to
-     * youtube-dl-exec solves issue with ytdl-core throwing errors in Nodejs v16
-     */
-    return new Promise((resolve, reject) => {
-			const process = ytdl.exec(
-				this.queue[0].url,
-				{
-					o: '-',
-					q: '',
-					f: 'bestaudio[ext=webm+acodec=opus+asr=48000]/bestaudio',
-					r: '200K',
-				},
-				{ stdio: ['ignore', 'pipe', 'ignore'] },
-			);
-
-			if (!process.stdout) {
-				reject(new Error('No stdout'));
-				return;
-			}
-
-			const stream = process.stdout;
-			const onError = (error) => {
-				if (!process.killed) process.kill();
-				stream.resume();
-				reject(error);
-			};
-
-      const nowPlayingEmbed = new MessageEmbed()
-        .setColor('#3399ff')
-        .addField('Now playing', `[${this.queue[0].title}](${this.queue[0].url})`);
-      this.channel.send({embeds: [nowPlayingEmbed]})
-        .then(message => this.playingMsg = message)
-        .catch(console.error);
-
-			process.once('spawn', () => {
-					demuxProbe(stream)
-						.then((probe) => resolve(createAudioResource(probe.stream, { metadata: this, inputType: probe.type })))
-						.catch(onError);
-				})
-				.catch(onError);
-		});
+    const nowPlayingEmbed = new MessageEmbed()
+      .setColor('#3399ff')
+      .addField('Now playing', `[${this.queue[0].title}](${this.queue[0].url})`);
+    this.channel.send({embeds: [nowPlayingEmbed]})
+      .then(message => this.playingMsg = message)
+      .catch('now playing embed' + console.error);
   }
 
   pause = async (interaction) => {
@@ -230,7 +210,7 @@ class MusicPlayer {
     let songList = '```ml\n';
     for (let i = 0; i < fullQueue.length; i++) {
 
-      if (fullQueue[i] === this.queue[0]) {
+      if ((i - this.played.length - 1) === 0) {
         songList += `-- Currently Playing --\n${i + 1}) ${fullQueue[i].title} "\n-- Up Next --\n`;
       } else {
         songList += `${i + 1}) ` + fullQueue[i].title + `\n`;
