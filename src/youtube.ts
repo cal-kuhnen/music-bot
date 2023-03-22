@@ -1,6 +1,6 @@
 const ytsr = require('ytsr');
 
-const youtubeSearch = async (query) => {
+export const youtubeSearch = async (query) => {
   try {
     const filters = await ytsr.getFilters(query);
     const vidFilter = filters.get('Type').get('Video');
@@ -14,5 +14,3 @@ const youtubeSearch = async (query) => {
     console.log(error);
   }
 }
-
-exports.search = youtubeSearch;

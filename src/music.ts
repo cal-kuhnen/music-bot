@@ -1,3 +1,6 @@
+import { AudioPlayer, VoiceConnection } from "@discordjs/voice";
+import { BaseGuildVoiceChannel, Message, EmbedBuilder } from 'discord.js'
+import { Song } from "./models/player.model";
 const ytcore = require('ytdl-core');
 const {
   joinVoiceChannel,
@@ -8,33 +11,34 @@ const {
   AudioPlayerStatus,
 } = require('@discordjs/voice');
 const { MessageEmbed } = require('discord.js');
-const youtube = require('./youtube.js');
+import { youtubeSearch } from './youtube';
 const play = require('play-dl');
 
 class MusicPlayer {
+  queue: Song[] = [];
+  played: Song[] = [];
+  audio: AudioPlayer;
+  connection: VoiceConnection;
+  channel: BaseGuildVoiceChannel;
+  playingMsg: Message;
   constructor() {
-    this.queue = [];
-    this.played = [];
     this.audio = createAudioPlayer();
-    this.connection = null;
-    this.channel = null;
     this.playingMsg;
 
     // On idle, play next song if it exists otherwise chill
     this.audio.on(AudioPlayerStatus.Idle, async () => {
       if (this.queue.length > 1) {
-        this.played.push(this.queue.shift());
+        this.played.push(this.queue.shift()!);
         const source = await play.stream(this.queue[0].url, { quality: 2 });
         this.audio.play(createAudioResource(source.stream, {
           inputType: source.type
         }));
       } else {
         if (this.queue.length > 0) {
-          this.played.push(this.queue.shift());
+          this.played.push(this.queue.shift()!);
         }
         if (this.playingMsg) {
           this.playingMsg.delete();
-          this.playingMsg = null;
         }
       }
     });
@@ -92,7 +96,7 @@ class MusicPlayer {
         url: songInfo.videoDetails.video_url,
       };
     } else {
-      song = await youtube.search(input);
+      song = await youtubeSearch(input);
     }
 
     if (!song) {
@@ -106,22 +110,15 @@ class MusicPlayer {
 
     if (!this.connection) {
       this.connection = await this.connectToChannel(voiceChannel);
-
-      // Temporary fix for pause that happens after ~55 seconds
-      this.connection.on('stateChange', (old_state, new_state) => {
-        if (old_state.status === VoiceConnectionStatus.Ready && new_state.status === VoiceConnectionStatus.Connecting) {
-            this.connection.configureNetworking();
-        }
-      });
       const subscription = this.connection.subscribe(this.audio);
 
-      if (!subscription) {
+      if (!this.connection && subscription) {
         setTimeout(() => subscription.unsubscribe(), 5000);
       }
     }
 
     this.queue.push(song);
-    const queuedEmbed = new MessageEmbed()
+    const queuedEmbed = new EmbedBuilder()
       .setColor('#3399ff')
       .setDescription(`Queued [${song.title}](${song.url})`);
 
@@ -142,15 +139,14 @@ class MusicPlayer {
   resourceBuilder = async () => {
     if (this.playingMsg) {
       this.playingMsg.delete();
-      this.playingMsg = null;
     }
 
     const nowPlayingEmbed = new MessageEmbed()
       .setColor('#3399ff')
-      .addField('Now playing', `[${this.queue[0].title}](${this.queue[0].url})`);
+      .addFields('Now playing', `[${this.queue[0].title}](${this.queue[0].url})`);
     this.channel.send({embeds: [nowPlayingEmbed]})
       .then(message => this.playingMsg = message)
-      .catch('now playing embed' + console.error);
+      .catch(console.error);
   }
 
   pause = async (interaction) => {
@@ -168,7 +164,7 @@ class MusicPlayer {
   }
 
   stop = async () => {
-    this.played.push(this.queue.shift());
+    this.played.push(this.queue.shift()!);
     this.queue = [];
     this.audio.stop();
   }
@@ -229,7 +225,6 @@ class MusicPlayer {
     if (this.connection) {
       this.audio.stop();
       this.connection.destroy();
-      this.connection = null;
     }
   }
 
@@ -243,5 +238,4 @@ class MusicPlayer {
 
 }
 
-player = new MusicPlayer();
-module.exports = player;
+export const player = new MusicPlayer();
