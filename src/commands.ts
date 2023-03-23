@@ -1,6 +1,7 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { player } from './music'; 
 import { Command } from './models/command.model';
+import { exitEmbed, notInChannelEmbed, skipEmbed, stoppedEmbed } from './constants/messages';
 
 export const Commands: Command[] = [
   // Play
@@ -17,7 +18,7 @@ export const Commands: Command[] = [
       let user = await interaction.member.fetch();
       let voiceChannel = await user.voice.channel;
       if (!voiceChannel) {
-        await interaction.reply('You must be in a voice channel to play audio!');
+        await interaction.reply({embeds: [notInChannelEmbed]});
       } else {
         player.play(input, voiceChannel, interaction);
       }
@@ -38,7 +39,7 @@ export const Commands: Command[] = [
       .setName('stop')
       .setDescription('Stops any audio and clears the queue.'),
     async execute(interaction) {
-      await interaction.reply('Player stopped.');
+      await interaction.reply({embeds: [stoppedEmbed]});
       player.stop();
     },
   },
@@ -48,7 +49,7 @@ export const Commands: Command[] = [
       .setName('skip')
       .setDescription('Skips to the next song in the queue.'),
     async execute(interaction) {
-      await interaction.reply('Skipping...');
+      await interaction.reply({embeds: [skipEmbed]});
       player.skip();
     },
   },
@@ -81,7 +82,7 @@ export const Commands: Command[] = [
       .setName('exit')
       .setDescription('Stops audio, boots bot from voice channel.'),
     async execute(interaction) {
-      await interaction.reply('Bye!');
+      await interaction.reply({embeds: [exitEmbed]});
       player.exit();
     },
   },

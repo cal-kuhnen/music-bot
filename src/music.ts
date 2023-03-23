@@ -1,6 +1,13 @@
 import { AudioPlayer, VoiceConnection } from "@discordjs/voice";
 import { BaseGuildVoiceChannel, Message, EmbedBuilder } from 'discord.js'
 import { Song } from "./models/player.model";
+import { 
+  pausedEmbed, 
+  errorEmbed, 
+  noInputEmbed, 
+  failEmbed, 
+  emptyQueueEmbed 
+} from "./constants/messages";
 const ytcore = require('ytdl-core');
 const {
   joinVoiceChannel,
@@ -10,7 +17,6 @@ const {
   entersState,
   AudioPlayerStatus,
 } = require('@discordjs/voice');
-const { MessageEmbed } = require('discord.js');
 import { youtubeSearch } from './youtube';
 const play = require('play-dl');
 
@@ -46,11 +52,7 @@ class MusicPlayer {
     // On error, try to play next song
     this.audio.on('error', async (error) => {
       console.error(error);
-      const errorEmbed = new MessageEmbed()
-        .setColor('#ff2222')
-        .setDescription('Audio player failure, RIP.');
-
-      this.channel.send({embeds: [errorEmbed]});
+      this.channel.send({embeds: [failEmbed]});
       this.audio.stop();
     });
   }
@@ -79,10 +81,6 @@ class MusicPlayer {
       await interaction.reply('Resuming...');
       return;
     } else if (!input) {
-      const noInputEmbed = new MessageEmbed()
-        .setColor('#ff2222')
-        .setDescription('Nothing to unpause, add a Youtube link or search query to queue audio');
-
       await interaction.reply({embeds: [noInputEmbed]});
       return;
     }
@@ -100,10 +98,6 @@ class MusicPlayer {
     }
 
     if (!song) {
-      const errorEmbed = new MessageEmbed()
-        .setColor('#ff2222')
-        .setDescription('An error occurred during this request. Tell Calvin something is broken');
-
       await interaction.reply({embeds: [errorEmbed]});
       return;
     }
@@ -121,7 +115,6 @@ class MusicPlayer {
     const queuedEmbed = new EmbedBuilder()
       .setColor('#3399ff')
       .setDescription(`Queued [${song.title}](${song.url})`);
-
     await interaction.reply({embeds: [queuedEmbed]});
 
     if (this.queue.length === 1) {
@@ -130,40 +123,32 @@ class MusicPlayer {
         this.audio.play(createAudioResource(source.stream, {
           inputType: source.type
         }));
+        const nowPlayingEmbed = new EmbedBuilder()
+          .setColor('#3399ff')
+          .addFields({ name: 'Now playing', value: `[${this.queue[0].title}](${this.queue[0].url})` });
+        this.channel.send({embeds: [nowPlayingEmbed]})
+          .then(message => this.playingMsg = message)
+          .catch(console.error);
       } catch(e) {
         console.log(e);
       }
     }
   }
 
-  resourceBuilder = async () => {
-    if (this.playingMsg) {
-      this.playingMsg.delete();
-    }
-
-    const nowPlayingEmbed = new MessageEmbed()
-      .setColor('#3399ff')
-      .addFields('Now playing', `[${this.queue[0].title}](${this.queue[0].url})`);
-    this.channel.send({embeds: [nowPlayingEmbed]})
-      .then(message => this.playingMsg = message)
-      .catch(console.error);
-  }
-
   pause = async (interaction) => {
-
     if (this.audio.state.status === AudioPlayerStatus.Playing) {
       this.audio.pause();
-      await interaction.reply('Paused!');
+      await interaction.reply({embeds: [pausedEmbed]});
     } else {
       await interaction.reply('No audio to pause.');
     }
   }
 
-  skip = async () => {
+  skip = () => {
     this.audio.stop();
   }
 
-  stop = async () => {
+  stop = () => {
     this.played.push(this.queue.shift()!);
     this.queue = [];
     this.audio.stop();
@@ -195,11 +180,7 @@ class MusicPlayer {
     const fullQueue = this.played.concat(this.queue);
 
     if (fullQueue.length === 0) {
-      const upNextEmbed = new MessageEmbed()
-        .setColor('#eedd00')
-        .setDescription('Queue is empty!');
-
-      await interaction.reply({embeds: [upNextEmbed]});
+      await interaction.reply({embeds: [emptyQueueEmbed]});
       return;
     }
 
@@ -214,7 +195,7 @@ class MusicPlayer {
     }
 
     songList += '```';
-    const upNextEmbed = new MessageEmbed()
+    const upNextEmbed = new EmbedBuilder()
       .setColor('#eedd00')
       .setDescription(songList);
 
