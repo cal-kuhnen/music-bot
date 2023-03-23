@@ -1,4 +1,3 @@
-import { AudioPlayer, VoiceConnection } from "@discordjs/voice";
 import { BaseGuildVoiceChannel, Message, EmbedBuilder } from 'discord.js'
 import { Song } from "./models/player.model";
 import { 
@@ -6,17 +5,21 @@ import {
   errorEmbed, 
   noInputEmbed, 
   failEmbed, 
-  emptyQueueEmbed 
+  emptyQueueEmbed, 
+  exitEmbed
 } from "./constants/messages";
 const ytcore = require('ytdl-core');
-const {
+import {
+  AudioPlayer,
+  VoiceConnection,
   joinVoiceChannel,
   createAudioPlayer,
   createAudioResource,
   VoiceConnectionStatus,
   entersState,
   AudioPlayerStatus,
-} = require('@discordjs/voice');
+  getVoiceConnection,
+} from '@discordjs/voice';
 import { youtubeSearch } from './youtube';
 const play = require('play-dl');
 
@@ -102,11 +105,11 @@ class MusicPlayer {
       return;
     }
 
-    if (!this.connection) {
-      this.connection = await this.connectToChannel(voiceChannel);
-      const subscription = this.connection.subscribe(this.audio);
+    if (!getVoiceConnection(this.channel.guild.id)) {
+      const connection = await this.connectToChannel(voiceChannel);
+      const subscription = connection.subscribe(this.audio);
 
-      if (!this.connection && subscription) {
+      if (!getVoiceConnection(this.channel.guild.id) && subscription) {
         setTimeout(() => subscription.unsubscribe(), 5000);
       }
     }
@@ -203,9 +206,18 @@ class MusicPlayer {
   }
 
   exit = () => {
-    if (this.connection) {
+    const connection = getVoiceConnection(this.channel.guild.id);
+    if (connection) {
       this.audio.stop();
-      this.connection.destroy();
+      if (this.playingMsg) this.playingMsg.delete();
+      connection.destroy();
+    }
+  }
+
+  checkEmptyChannel = (newChannel: string | null) => {
+    if (newChannel !== this.channel?.id && this.channel?.members?.size < 3) {
+      this.channel.send({embeds: [exitEmbed]})
+      this.exit();
     }
   }
 

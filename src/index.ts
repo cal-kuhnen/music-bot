@@ -1,8 +1,9 @@
 require('dotenv').config();
 import * as fs from 'fs';
 import { Client, GatewayIntentBits, Collection } from 'discord.js';
-import { Command, CommandClient } from './models/command.model';
+import { CommandClient } from './models/command.model';
 import { Commands } from './commands';
+import { player } from './music';
 
 const client = new Client({
   intents: [
@@ -35,6 +36,12 @@ client.on('interactionCreate', async interaction => {
 
 client.once('ready', () => {
 	console.log('Ready!');
+});
+
+client.on('voiceStateUpdate', (oldState, newState) => {
+  if (newState.member?.id !== client.user?.id && oldState.channelId) {
+    player.checkEmptyChannel(newState.channelId);
+  }
 });
 
 // Login to Discord with your client's token
