@@ -3,7 +3,7 @@ import { player } from './music';
 import { Command } from './models/command.model';
 import { exitEmbed, notInChannelEmbed, skipEmbed, stoppedEmbed } from './constants/messages';
 
-export const Commands: Command[] = [
+const Commands: Command[] = [
   // Play
   {
     data: new SlashCommandBuilder()
@@ -87,3 +87,5 @@ export const Commands: Command[] = [
     },
   },
 ];
+
+export default Commands;

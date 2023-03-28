@@ -2,7 +2,7 @@ require('dotenv').config();
 import * as fs from 'fs';
 import { Client, GatewayIntentBits, Collection } from 'discord.js';
 import { CommandClient } from './models/command.model';
-import { Commands } from './commands';
+import commands from './commands';
 import { player } from './music';
 
 const client = new Client({
@@ -15,7 +15,7 @@ const client = new Client({
 
 client.commands = new Collection();
 
-Commands.forEach(command => {
+commands.forEach(command => {
   client.commands.set(command.data.name, command);
 });
 
