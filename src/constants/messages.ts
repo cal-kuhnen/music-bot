@@ -1,4 +1,4 @@
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, embedLength } from 'discord.js';
 
 export const pausedEmbed = new EmbedBuilder()
   .setColor('#3399ff')
@@ -35,3 +35,22 @@ export const notInChannelEmbed = new EmbedBuilder()
 export const exitEmbed = new EmbedBuilder()
   .setColor('#3399ff')
   .setDescription('Peace son');
+
+export const resumingEmbed = new EmbedBuilder()
+  .setColor('#3399ff')
+  .setDescription('Resuming...');
+
+export const noAudioEmbed = new EmbedBuilder()
+  .setColor('#ff2222')
+  .setDescription('No audio to pause.');
+
+export const cannotRemoveEmbed = new EmbedBuilder()
+  .setColor('#ff2222')
+  .setDescription('Cannot remove currently playing song.');
+
+export const removedEmbed = (removedName: string) => {
+  const embed = new EmbedBuilder()
+    .setColor('#3399ff')
+    .setDescription(`Removed ${removedName} from the queue.`);
+  return embed;
+}

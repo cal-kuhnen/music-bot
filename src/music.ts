@@ -6,7 +6,11 @@ import {
   noInputEmbed, 
   failEmbed, 
   emptyQueueEmbed, 
-  exitEmbed
+  exitEmbed,
+  resumingEmbed,
+  noAudioEmbed,
+  cannotRemoveEmbed,
+  removedEmbed
 } from "./constants/messages";
 const ytcore = require('ytdl-core');
 import {
@@ -81,7 +85,7 @@ class MusicPlayer {
 
     if(!input && this.audio.state.status === AudioPlayerStatus.Paused) {
       this.audio.unpause();
-      await interaction.reply('Resuming...');
+      await interaction.reply({embeds: [resumingEmbed]});
       return;
     } else if (!input) {
       await interaction.reply({embeds: [noInputEmbed]});
@@ -143,7 +147,7 @@ class MusicPlayer {
       this.audio.pause();
       await interaction.reply({embeds: [pausedEmbed]});
     } else {
-      await interaction.reply('No audio to pause.');
+      await interaction.reply({embeds: [noAudioEmbed]});
     }
   }
 
@@ -157,10 +161,10 @@ class MusicPlayer {
     this.audio.stop();
   }
 
-  remove = async (trackID, interaction) => {
+  remove = async (trackID: number, interaction) => {
 
     if (trackID - this.played.length - 1 === 0) {
-      await interaction.reply('Cannot remove currently playing song');
+      await interaction.reply({embeds: [cannotRemoveEmbed]});
       return;
     }
 
@@ -169,11 +173,11 @@ class MusicPlayer {
     } else if (trackID <= this.played.length) {
       const removedName = this.played[trackID - 1].title;
       this.played.splice(trackID - 1, 1);
-      await interaction.reply(`Removed ${removedName} from the queue`);
+      await interaction.reply({embeds: [removedEmbed(removedName)]});
     } else {
       const removedName = this.queue[(trackID - this.played.length - 1)].title;
       this.queue.splice((trackID - this.played.length - 1), 1);
-      await interaction.reply(`Removed ${removedName} from the queue`);
+      await interaction.reply({embeds: [removedEmbed(removedName)]});
     }
 
   }
