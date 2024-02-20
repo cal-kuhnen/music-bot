@@ -1,14 +1,13 @@
-const ytsr = require('ytsr');
+const yts = require('yt-search');
 
 export const youtubeSearch = async (query) => {
   try {
-    const filters = await ytsr.getFilters(query);
-    const vidFilter = filters.get('Type').get('Video');
-    const results = await ytsr(vidFilter.url, { limit: 1 });
+    const result = await yts(query);
+    const firstResult = result.videos[0];
     const song = {
-      title: results.items[0].title,
-      url: results.items[0].url
-    };
+        title: firstResult.title,
+        url: firstResult.url,
+      };
     return song;
   } catch (error) {
     console.log(error);
